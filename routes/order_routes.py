@@ -28,7 +28,7 @@ async def delete_order_endpoint(order_id: str):
     return {"detail": "Order deleted successfully"}
 
 
-@router.put("/orders/{order_id}", status_code=200)
+@router.put("/orders/{order_id}", status_code=202)
 async def edit_order_endpoint(order_id: str, order: OrderCreate):
     result = edit_order(order_id, order)
     if "error" in result:
