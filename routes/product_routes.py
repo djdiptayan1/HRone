@@ -27,7 +27,7 @@ async def delete_product_endpoint(product_id: str):
     return delete_product(product_id)
 
 
-@router.put("/products/{product_id}", status_code=200)
+@router.put("/products/{product_id}", status_code=202)
 async def edit_product_endpoint(product_id: str, product: ProductCreate):
     updated_product = edit_product(product_id, product)
     if not updated_product:
