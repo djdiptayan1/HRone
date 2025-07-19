@@ -10,7 +10,7 @@ def get_products(
     name: str = None,
     size: str = None,
     product_ids: list = None,
-    limit: int = 10,
+    limit: int = 6,
     offset: int = 0,
 ):
     db = get_db()
@@ -42,7 +42,7 @@ def create_new_product(product: ProductCreate):
     return {"id": str(result.inserted_id)}
 
 
-def list_products(name: str = None, size: str = None, limit: int = 10, offset: int = 0):
+def list_products(name: str = None, size: str = None, limit: int = 6, offset: int = 0):
     products_list, total = get_products(name, size, None, limit, offset)
 
     next_offset = offset + limit if offset + limit < total else None
@@ -51,16 +51,20 @@ def list_products(name: str = None, size: str = None, limit: int = 10, offset: i
     return {
         "data": products_list,
         "page": {
-            "next": str(next_offset) if next_offset else None,
-            "limit": limit,
-            "previous": str(prev_offset) if prev_offset else None,
+            "next": str(next_offset) if next_offset is not None else None,
+            "limit": len(products_list),
+            "previous": (
+                prev_offset if prev_offset is not None else None
+            ),
         },
     }
+
 
 def delete_product(product_id: str):
     db = get_db()
     result = db.products.delete_one({"_id": ObjectId(product_id)})
     return {"deleted": result.deleted_count > 0}
+
 
 def edit_product(product_id: str, product: ProductCreate):
     db = get_db()
@@ -68,8 +72,12 @@ def edit_product(product_id: str, product: ProductCreate):
     result = db.products.update_one(
         {"_id": ObjectId(product_id)}, {"$set": product_data}
     )
-    
+
     if result.matched_count == 0:
         return {"error": "Product not found"}
-    
-    return {"id": product_id, "name": product_data["name"], "price": product_data["price"]}
+
+    return {
+        "id": product_id,
+        "name": product_data["name"],
+        "price": product_data["price"],
+    }
