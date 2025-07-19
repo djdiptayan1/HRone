@@ -24,7 +24,7 @@ async def create_product_endpoint(
 async def get_products_endpoint(
     name: str = None,
     size: str = None,
-    limit: int = 10,
+    limit: int = 6,
     offset: int = 0,
     # token: str = Depends(jwt_bearer),
 ):

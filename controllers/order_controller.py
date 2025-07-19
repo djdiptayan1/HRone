@@ -4,12 +4,19 @@ from models.order_model import OrderCreate, OrderResponse, OrderItemResponse
 from models.product_model import OrderProductResponse
 from db.database import get_db
 from bson import ObjectId
+from bson.errors import InvalidId
+from fastapi import HTTPException
 
 
 def create_new_order(order: OrderCreate):
     db = get_db()
     for item in order.items:
-        product = db.products.find_one({"_id": ObjectId(item.productId)})
+        try:
+            product_object_id = ObjectId(item.productId)
+        except InvalidId:
+            return {"error": f"Invalid product ID format: {item.productId}"}
+
+        product = db.products.find_one({"_id": product_object_id})
         if not product:
             return {"error": f"Product with ID {item.productId} not found"}
 
@@ -32,9 +39,17 @@ def create_new_order(order: OrderCreate):
                 result = db.orders.insert_one(order_dict, session=session)
 
                 for item in order.items:
+                    try:
+                        product_object_id = ObjectId(item.productId)
+                    except InvalidId:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"Invalid product ID: {item.productId}",
+                        )
+
                     remaining_qty = item.qty
                     product = db.products.find_one(
-                        {"_id": ObjectId(item.productId)}, session=session
+                        {"_id": product_object_id}, session=session
                     )
 
                     for i, size_obj in enumerate(product["sizes"]):
@@ -46,7 +61,7 @@ def create_new_order(order: OrderCreate):
 
                         if to_deduct > 0:
                             db.products.update_one(
-                                {"_id": ObjectId(item.productId)},
+                                {"_id": product_object_id},
                                 {"$inc": {f"sizes.{i}.quantity": -to_deduct}},
                                 session=session,
                             )
@@ -58,7 +73,7 @@ def create_new_order(order: OrderCreate):
         return {"error": f"Failed to create order: {str(e)}"}
 
 
-def get_user_orders(user_id: str, limit: int = 10, offset: int = 0):
+def get_user_orders(user_id: str, limit: int = 6, offset: int = 0):
     orders, total = get_orders(user_id, limit, offset)
 
     all_product_ids = []
@@ -106,9 +121,11 @@ def get_user_orders(user_id: str, limit: int = 10, offset: int = 0):
     return {
         "data": response_orders,
         "page": {
-            "next": str(next_offset) if next_offset else None,
-            "limit": limit,
-            "previous": str(prev_offset) if prev_offset else None,
+            "next": str(next_offset) if next_offset is not None else None,
+            "limit": len(response_orders),
+            "previous": (
+                prev_offset if prev_offset is not None else None
+            ),
         },
     }
 

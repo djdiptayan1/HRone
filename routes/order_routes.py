@@ -23,7 +23,7 @@ async def create_order_endpoint(
 @router.get("/orders/{user_id}")
 async def get_orders_endpoint(
     user_id: str,
-    limit: int = 10,
+    limit: int = 6,
     offset: int = 0,
     # token: str = Depends(jwt_bearer)
 ):
