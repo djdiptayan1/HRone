@@ -3,10 +3,8 @@ from pymongo.errors import ConnectionFailure
 from dotenv import load_dotenv
 import os
 
-# Load environment variables from .env file
 load_dotenv()
 
-# Get environment variables - use os.getenv with fallbacks for production
 MONGO_URI = os.getenv("MONGO_URI")
 DB_NAME = os.getenv("DB_NAME", "ecommerce_db")  # Default fallback
 
