@@ -1,9 +1,10 @@
 # E-commerce Backend API
 
-A e-commerce backend application built with **FastAPI** and **MongoDB**, featuring product management, order processing, and inventory control.
+A comprehensive e-commerce backend application built with **FastAPI** and **MongoDB**, featuring product management, order processing, inventory control, and JWT-based authentication.
 
 ## 🚀 Features
 
+- **JWT Authentication**: Session-based authentication with token management
 - **Product Management**: Create and list products with size variants
 - **Order Processing**: Place orders with real-time inventory validation
 - **Inventory Management**: Automatic stock deduction and overselling prevention
@@ -11,11 +12,13 @@ A e-commerce backend application built with **FastAPI** and **MongoDB**, featuri
 - **Search & Filtering**: Advanced product search by name and size
 - **Database Transactions**: ACID compliance for order processing
 - **Environment Configuration**: Secure credential management with .env
+- **Session Management**: In-memory session storage with expiry handling
 
 ## 🛠 Tech Stack
 
 - **Backend Framework**: FastAPI (Python 3.11)
 - **Database**: MongoDB with PyMongo
+- **Authentication**: JWT (python-jose) with session management
 - **Validation**: Pydantic Models
 - **Environment**: python-dotenv
 - **Server**: Uvicorn ASGI Server
@@ -27,10 +30,14 @@ HRone/
 ├── app.py                 # Main FastAPI application
 ├── requirements.txt       # Python dependencies
 ├── .env                  # Environment variables
+├── .env.example          # Environment template
 ├── readme.md             # Project documentation
 ├── controllers/          # Business logic layer
 │   ├── product_controller.py
-│   └── order_controller.py
+│   ├── order_controller.py
+│   └── auth_controller.py
+├── middleware/           # Authentication middleware
+│   └── auth.py
 ├── db/                   # Database layer
 │   ├── database.py       # MongoDB connection
 │   ├── product_repository.py
@@ -40,7 +47,8 @@ HRone/
 │   └── order_model.py
 └── routes/               # API route definitions
     ├── product_routes.py
-    └── order_routes.py
+    ├── order_routes.py
+    └── auth_routes.py
 ```
 
 ## 🔧 Setup & Installation
@@ -68,10 +76,20 @@ pip install -r requirements.txt
 ```
 
 ### 4. Environment Configuration
-Create a `.env` file in the root directory:
+Create a `.env` file in the root directory (copy from `.env.example`):
+
 ```env
-MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority
-DB_NAME=ecommerce_db
+# Database Configuration
+MONGODB_URL=mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority
+DATABASE_NAME=ecommerce_db
+
+# JWT Configuration
+JWT_SECRET_KEY=secret-jwt-key-here-change-this-in-production
+JWT_ALGORITHM=HS256
+JWT_EXPIRES_MINUTES=30
+
+# Session Configuration
+SESSION_TIMEOUT_MINUTES=30
 ```
 
 ### 5. Run the Application
@@ -94,11 +112,95 @@ http://localhost:8000/api/v1
 
 ## 🛍 API Endpoints
 
+### 🔐 Authentication
+
+All product and order endpoints require authentication. First, obtain a JWT token by creating a session.
+
+#### Create Session (Login)
+```http
+POST /api/v1/auth/login
+Content-Type: application/json
+
+{
+  "user_id": "optional_user_identifier",
+  "metadata": {
+    "device": "browser",
+    "source": "web"
+  }
+}
+```
+
+**Response (201):**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer",
+  "expires_in": 1800,
+  "message": "Session created successfully"
+}
+```
+
+#### Use Token for Protected Endpoints
+Include the token in the Authorization header for all protected endpoints:
+```http
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+#### Refresh Session
+```http
+POST /api/v1/auth/refresh
+Authorization: Bearer <your_token>
+```
+
+**Response (200):**
+```json
+{
+  "access_token": "new_token_here",
+  "token_type": "bearer",
+  "expires_in": 1800,
+  "message": "Session refreshed successfully"
+}
+```
+
+#### Logout (Invalidate Session)
+```http
+POST /api/v1/auth/logout
+Authorization: Bearer <your_token>
+```
+
+**Response (200):**
+```json
+{
+  "message": "Session invalidated successfully"
+}
+```
+
+#### Get Session Info
+```http
+GET /api/v1/auth/session
+Authorization: Bearer <your_token>
+```
+
+**Response (200):**
+```json
+{
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
+  "created_at": "2024-01-15T10:30:00",
+  "expires_at": "2024-01-15T11:00:00",
+  "user_data": {"user_id": "optional_user_identifier"},
+  "is_active": true
+}
+```
+
 ### Products
+
+> **Note**: All product endpoints require authentication. Include `Authorization: Bearer <token>` header.
 
 #### Create Product
 ```http
 POST /api/v1/products
+Authorization: Bearer <your_token>
+Content-Type: application/json
 ```
 
 **Request Body:**
@@ -193,9 +295,13 @@ DELETE /api/v1/products/{product_id}
 
 ### Orders
 
+> **Note**: All order endpoints require authentication. Include `Authorization: Bearer <token>` header.
+
 #### Create Order
 ```http
 POST /api/v1/orders
+Authorization: Bearer <your_token>
+Content-Type: application/json
 ```
 
 **Request Body:**
