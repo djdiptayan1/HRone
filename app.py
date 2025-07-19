@@ -9,10 +9,10 @@ app = FastAPI(
     description="A comprehensive e-commerce API",
     version="1.0.0",
 )
-app.include_router(auth_router, prefix="/api/v1/auth", tags=["Authentication"])
+app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
 
-app.include_router(product_router, prefix="/api/v1", tags=["Products"])
-app.include_router(order_router, prefix="/api/v1", tags=["Orders"])
+app.include_router(product_router, prefix="/api", tags=["Products"])
+app.include_router(order_router, prefix="/api", tags=["Orders"])
 
 
 @app.get("/", tags=["Health"])
